@@ -208,7 +208,7 @@ def get_overall_annotations(anno_df, panel_design, FOV, Round):
                 score_val = grades.index(anno_txt.strip()) - 1
                 anno_scores.append(score_val)
     else:
-        raise Exception("Round not in the OME Tiff file.")
+        print("Round not in the OME Tiff file.")
     return anno_txt_list, anno_scores
 
 
