@@ -66,7 +66,7 @@ case_id = "OVCA_TMA22"  # case ID
 ROIs = range(1, 348)  # range/list of ROIs
 # ROIs = range(1, 3)  # range/list of ROIs
 N_range = range(2, 32)  # range of imaging iterations (skip the first round, as it's an overview of slide)
-OME_TIFF_dir = "/research/bsi/projects/staff_analysis/m192500/MxIF_CellSeg/OVCA_TMA22/OME_TIFF_Images"  # directory to save OME.TIFF files
+OME_TIFF_dir = "/research/bsi/projects/staff_analysis/m192500/MxIF_CellSeg/OME_TIFF/OVCA_TMA22"  # directory to save OME.TIFF files
 annotation_fn = "./OVTMA_MarkerQCAnnotations_FromJun_upgraded_04_08_2022.txt"  # annotation csv file name
 output = "/research/bsi/projects/staff_analysis/m192500/MxIF_CellSeg/OME_TIFF/QC_out"
 vis = "/research/bsi/projects/staff_analysis/m192500/MxIF_CellSeg/OME_TIFF/QC_vis"
@@ -135,11 +135,11 @@ else:
             best_threshold_dapi_std_fn = os.path.join(QC_out_dir, "best_dapi_std_threshold.pickel")
             if not os.path.exists(best_threshold_dapi_std_fn):
                 print("Don't have halo artifacts annotation, use saved threshold to detect.")
-                best_threshold_dapi_std = 0.5  # use hard code values
+                best_threshold_dapi_std = 7.77  # use hard code values
             else:
                 fp = open(best_threshold_dapi_std_fn, "wb")
                 best_threshold_dapi_std = pickle.load(fp)
-            det_halo_artifacts(best_threshold_dapi_std, ROIs, QC_out_dir, Aligned_img_dir, N_range)  # TODO:
+            det_halo_artifacts(best_threshold_dapi_std, ROIs, QC_out_dir, Aligned_img_dir, N_range)
     else:
         anno_df = None
 
