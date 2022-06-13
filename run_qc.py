@@ -5,7 +5,8 @@ import pandas as pd
 import pickle
 
 from utils import get_panel_design, get_SSIM_array, plot_SSIM_array, \
-    get_dapis_for_a_ROI, get_dapis_std, plot_dapi_thumbnails, plot_dapi_std, vis_marker_images, plot_marker_quality_scatter
+    get_dapis_for_a_ROI, get_dapis_std, plot_dapi_thumbnails, plot_dapi_std, vis_marker_images, \
+    plot_marker_quality_scatter, get_meaningful_round
 from quality_eval import load_annotation, eval_tissue_damage, det_tissue_damage, eval_halo_artifacts, det_halo_artifacts
 
 # parser = argparse.ArgumentParser()
@@ -66,7 +67,7 @@ case_id = "OVCA_TMA22"  # case ID
 ROIs = range(1, 348)  # range/list of ROIs
 # ROIs = range(1, 3)  # range/list of ROIs
 N_range = range(2, 32)  # range of imaging iterations (skip the first round, as it's an overview of slide)
-OME_TIFF_dir = "/research/bsi/projects/staff_analysis/m192500/MxIF_CellSeg/OME_TIFF/OVCA_TMA22"  # directory to save OME.TIFF files
+OME_TIFF_dir = "/research/bsi/projects/staff_analysis/m192500/MxIF_CellSeg/OVCA_TMA22/OME_TIFF_Images"  # directory to save OME.TIFF files
 annotation_fn = "./OVTMA_MarkerQCAnnotations_FromJun_upgraded_04_08_2022.txt"  # annotation csv file name
 output = "/research/bsi/projects/staff_analysis/m192500/MxIF_CellSeg/OME_TIFF/QC_out"
 vis = "/research/bsi/projects/staff_analysis/m192500/MxIF_CellSeg/OME_TIFF/QC_vis"
@@ -96,15 +97,15 @@ else:
     # a_pool.map(calculate_all, ROIs)
 
     # Calculate QC metrics: SSIM and std
-    # for roi in ROIs:
-    #     print("processing ROI %d" % roi)
-    #     ssim_array = get_SSIM_array(roi, Aligned_img_dir, N_range, QC_out_dir)
-    #     plot_SSIM_array(ssim_array, roi, N_range, vis_dir)  # create figures()
-    #
-    #     dapi_imgs = get_dapis_for_a_ROI(roi, Aligned_img_dir, N_range, gray_scale=(0, 255))
-    #     std_img = get_dapis_std(dapi_imgs, QC_out_dir, roi)  # save dapi std
-    #     plot_dapi_thumbnails(dapi_imgs, roi, vis_dir)  #TODO: double check
-    #     plot_dapi_std(std_img, roi, vis_dir)  #TODO: double check
+    for roi in ROIs:
+        print("processing ROI %d" % roi)
+        ssim_array = get_SSIM_array(roi, Aligned_img_dir, N_range, QC_out_dir)
+        plot_SSIM_array(ssim_array, roi, N_range, vis_dir)  # create figures()
+
+        dapi_imgs = get_dapis_for_a_ROI(roi, Aligned_img_dir, N_range, gray_scale=(0, 255))
+        std_img = get_dapis_std(dapi_imgs, QC_out_dir, roi)  # save dapi std
+        plot_dapi_thumbnails(dapi_imgs, roi, vis_dir)  # TODO: double check
+        plot_dapi_std(std_img, roi, vis_dir)  # TODO: double check
 
     # load overall annotations and evaluate performance accordingly, or detect quality issues
     if os.path.exists(annotation_fn):
@@ -139,13 +140,14 @@ else:
             else:
                 fp = open(best_threshold_dapi_std_fn, "wb")
                 best_threshold_dapi_std = pickle.load(fp)
-            det_halo_artifacts(best_threshold_dapi_std, ROIs, QC_out_dir, Aligned_img_dir, N_range)
+            det_halo_artifacts(best_threshold_dapi_std, ROIs, QC_out_dir, Aligned_img_dir, N_range)  # TODO:
     else:
         anno_df = None
 
     # visualize markers in the same round
+    n_round, _ = get_meaningful_round(panel_des, N_range)  # skip the bleaching round
     for fov in ROIs:
-        for r in N_range:
+        for r in n_round:
             out_dir = os.path.join(vis_dir, "Markers_per_round")
             if not os.path.exists(out_dir):
                 os.makedirs(out_dir)

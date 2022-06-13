@@ -11,6 +11,7 @@ import matplotlib as mpl
 import tifffile as tf
 from PIL import Image, ImageDraw, ImageEnhance
 import xml.etree.ElementTree
+from vis_utils import autoSetDisplayRange
 
 def get_panel_design(Aligned_img_dir, panel_save_dir):
     save_to = os.path.join(panel_save_dir, "panel_design.pickle")
@@ -55,6 +56,7 @@ def get_panel_design(Aligned_img_dir, panel_save_dir):
         f.close()
     return panel
 
+
 def read_dapi(fn, scale_to=(0, 65535)):
     if os.path.exists(fn):
         openOME = tf.TiffFile(fn)
@@ -63,6 +65,7 @@ def read_dapi(fn, scale_to=(0, 65535)):
         return c
     else:
         raise Exception("file not exist")
+
 
 def get_dapis_for_a_ROI(roi_idx, img_dir, img_rounds, gray_scale=None, resize_to=None):
     # print("ROI: %d" % roi_idx)
@@ -81,6 +84,7 @@ def get_dapis_for_a_ROI(roi_idx, img_dir, img_rounds, gray_scale=None, resize_to
         img_list.append(np.array(img))
     return np.array(img_list)
 
+
 def get_dapis_std(dapi_imgs, save_dir, ROI_id):
     std_img = np.std(dapi_imgs, axis=0)
     save_to = os.path.join(save_dir, "dapi_std_img", str(ROI_id) + ".pickle")
@@ -96,6 +100,7 @@ def get_dapis_std(dapi_imgs, save_dir, ROI_id):
         print("DAPI std saved to %s" % save_to)
     return std_img
 
+
 def get_SSIM_array(roi_idx, aligned_img_dir, N_range, out_dir):
     array_save_to = os.path.join(out_dir, "dapi_ssim", "ssim_array_region" + str(roi_idx) + ".pickle")
     if os.path.exists(array_save_to):
@@ -109,12 +114,14 @@ def get_SSIM_array(roi_idx, aligned_img_dir, N_range, out_dir):
         ssim_array = np.zeros([len(N_range), len(N_range)])
         for idx_i, r_n_i in enumerate(N_range):
             s_i = "S{:03d}".format(r_n_i)
-            fn_i = os.path.join(aligned_img_dir, s_i, s_i + "_mono_dapi_reg_pyr16_region_" + r_s + ".tif")  # DAPI file name
+            fn_i = os.path.join(aligned_img_dir, s_i,
+                                s_i + "_mono_dapi_reg_pyr16_region_" + r_s + ".tif")  # DAPI file name
             # print("\t" + fn_i)
             for idx_j, r_n_j in enumerate(N_range):
                 if idx_j > idx_i:
                     s_j = "S{:03d}".format(r_n_j)
-                    fn_j = os.path.join(aligned_img_dir, s_j, s_j + "_mono_dapi_reg_pyr16_region_" + r_s + ".tif")  # DAPI file name
+                    fn_j = os.path.join(aligned_img_dir, s_j,
+                                        s_j + "_mono_dapi_reg_pyr16_region_" + r_s + ".tif")  # DAPI file name
 
                     img_i = read_dapi(fn_i, scale_to=(0, 65535))
                     img_j = read_dapi(fn_j, scale_to=(0, 65535))
@@ -134,6 +141,7 @@ def get_SSIM_array(roi_idx, aligned_img_dir, N_range, out_dir):
             pickle.dump(ssim_array, f)
         print("SSIM array saved to %s" % array_save_to)
     return ssim_array
+
 
 def plot_SSIM_array(ssim_array, roi_idx, N_range, save_to_dir):
     save_to = os.path.join(save_to_dir, "dapi_ssim_array", "ssim_img_region" + str(roi_idx) + ".png")
@@ -155,7 +163,7 @@ def plot_dapi_thumbnails(dapi_imgs, roi_id, out_dir):
     if not os.path.exists(save_to):
         img_w_h = (4, 8)
         ele_img_sz = 200
-        entire_img = np.zeros([img_w_h[0]*ele_img_sz, img_w_h[1]*ele_img_sz]).astype(np.uint8)
+        entire_img = np.zeros([img_w_h[0] * ele_img_sz, img_w_h[1] * ele_img_sz]).astype(np.uint8)
         for idx_i, dapi in enumerate(dapi_imgs):
             c = (255 * (dapi - np.amin(dapi)) / np.ptp(dapi)).astype(int)
             img = Image.fromarray(c, mode="L")
@@ -169,7 +177,7 @@ def plot_dapi_thumbnails(dapi_imgs, roi_id, out_dir):
             x = idx_i // img_w_h[1]
             y = idx_i % img_w_h[1]
             img_arr = np.array(img)
-            entire_img[x*ele_img_sz: (x+1)*ele_img_sz, y*ele_img_sz: (y+1)*ele_img_sz] = img_arr
+            entire_img[x * ele_img_sz: (x + 1) * ele_img_sz, y * ele_img_sz: (y + 1) * ele_img_sz] = img_arr
 
         cm_hot = mpl.cm.get_cmap('hot')
         im = cm_hot(entire_img)
@@ -179,9 +187,10 @@ def plot_dapi_thumbnails(dapi_imgs, roi_id, out_dir):
             os.makedirs(os.path.join(out_dir, "DAPI_thumbnails"))
         img = Image.fromarray(entire_img)
         draw = ImageDraw.Draw(img)
-        draw_loc = (entire_img.shape[1]-50, entire_img.shape[1]-50)
+        draw_loc = (entire_img.shape[1] - 50, entire_img.shape[1] - 50)
         draw.text(draw_loc, "ROI" + str(roi_id), fill=(255, 255, 255))
         img.save(save_to)
+
 
 def plot_dapi_std(dapi_std, roid_id, out_dir):
     save_to = os.path.join(out_dir, "dapi_std_img", "std_img_" + str(roid_id) + ".png")
@@ -193,6 +202,7 @@ def plot_dapi_std(dapi_std, roid_id, out_dir):
         plt.savefig(save_to)
         plt.close()
 
+
 def get_overall_annotations(anno_df, panel_design, FOV, Round):
     round_key = "S{:03d}".format(Round)
     grades = ["Poor", "Fair", "Good", "Excellent"]
@@ -200,7 +210,7 @@ def get_overall_annotations(anno_df, panel_design, FOV, Round):
     anno_scores = []
     if round_key in panel_design.keys():
         markers = panel_design[round_key]
-        # print(markers)
+        print(markers)
         for m in markers:
             if m != "-":
                 anno_txt = anno_df.loc[FOV - 1, m.upper()]
@@ -212,21 +222,42 @@ def get_overall_annotations(anno_df, panel_design, FOV, Round):
     return anno_txt_list, anno_scores
 
 
+# return rounds with images (bleaching round are excluded)
+def get_meaningful_round(panel, round_range):
+    meaningful_rounds = []
+    markers_in_rounds = []
+    for ss in round_range:
+        SS = "S{:03d}".format(ss)
+        if SS in panel.keys():
+            meaningful_rounds.append(ss)
+            cnt = 0
+            markers = []
+            for stain in panel[SS]:
+                if stain != "-":
+                    cnt += 1
+                    markers.append(stain.upper())
+            markers_in_rounds.append(markers)
+    return meaningful_rounds, markers_in_rounds
+
 # img_sz = 512
 # factor = 1.8 #1.5, increase contrast, 1, gives original image; 0.5 #decrease constrast
 def vis_marker_images(case_id, FOV, Round, panel, anno_df, ome_tiff_dir, out_dir, factor=1.8):
-    all_imgs = get_images(case_id, FOV, Round, panel,anno_df, ome_tiff_dir)
+    all_imgs = get_images_vis(case_id, FOV, Round, panel, anno_df, ome_tiff_dir)
+    # all_imgs = get_images(case_id, FOV, Round, panel, anno_df, ome_tiff_dir)
     FOV_dir = "ROI_%d" % FOV
     if not os.path.exists(os.path.join(out_dir, FOV_dir)):
         os.makedirs(os.path.join(out_dir, FOV_dir))
     save_to = os.path.join(out_dir, FOV_dir, "Round_%d.png" % Round)
     all_img_in_round = Image.fromarray(all_imgs, 'RGBA')
+    # plt.imshow(all_img_in_round)
+    # plt.savefig("test.png")
     enhancer = ImageEnhance.Contrast(all_img_in_round)
     all_img_in_round = enhancer.enhance(factor)
     draw = ImageDraw.Draw(all_img_in_round)
-    draw_loc = (round(all_imgs.shape[1]/2), all_imgs.shape[0]-15)
-    draw.text(draw_loc, "FOV%d, Round%d" % (FOV, Round), fill=(0,0,0))
+    draw_loc = (round(all_imgs.shape[1] / 2), all_imgs.shape[0] - 15)
+    draw.text(draw_loc, "FOV%d, Round%d" % (FOV, Round), fill=(0, 0, 0))
     all_img_in_round.save(save_to)
+
 
 def get_channel_names(tiff_file):
     omexml_string = tiff_file.pages[0].description
@@ -235,6 +266,7 @@ def get_channel_names(tiff_file):
     channels = root.findall('ome:Image[1]/ome:Pixels/ome:Channel', namespaces)
     channel_names = [c.attrib['Name'] for c in channels]
     return channel_names
+
 
 def get_channel_index(panel, Round, channel_names):
     r_s = "S{:03d}".format(Round)
@@ -253,26 +285,31 @@ def get_channel_index(panel, Round, channel_names):
         raise Exception("Round not in the OME Tiff file.")
 
 
-def get_images(case_id, fov, Round, panel, anno_df, img_dir, img_sz=512):
+def get_images_vis(case_id, fov, Round, panel, anno_df, img_dir, img_sz=512):
     global annotations
     c_maps = ['Blues', 'Greens', 'Oranges', 'Reds', 'Purples']
     if anno_df is not None:
         annotations, _ = get_overall_annotations(anno_df, panel, fov, Round)
 
-    fn = os.path.join(img_dir, case_id +"_region_{:03d}.ome.tiff".format(fov))
+    fn = os.path.join(img_dir, case_id + "_region_{:03d}.ome.tiff".format(fov))
     openOME = tf.TiffFile(fn)
     channel_names = get_channel_names(openOME)
     # for n in channel_names:
     #     print(n)
     indx = get_channel_index(panel, Round, channel_names)
-    all_img = np.zeros((img_sz, img_sz*len(indx), 4)).astype(np.uint8)
+    all_img = np.zeros((img_sz, img_sz * len(indx), 4)).astype(np.uint8)
     for i_idx, i in enumerate(indx):
         if i != -1:
             img_arr = openOME.pages[i].asarray().astype(np.float)
+            v_min, v_max = autoSetDisplayRange(img_arr)
+            img_arr[img_arr < v_min] = 0
+            img_arr[img_arr > v_max] = v_max
             img_arr = (255.0 * (img_arr - np.amin(img_arr)) / np.ptp(img_arr)).astype(np.uint8)
         else:
             img_arr = np.zeros((img_sz, img_sz), dtype=np.uint8)
         img = Image.fromarray(img_arr, mode="L")
+        enhancer = ImageEnhance.Sharpness(img)
+        img = enhancer.enhance(5.8)
         # https://ipython-books.github.io/111-manipulating-the-exposure-of-an-image/
         # img = skie.equalize_adapthist(img)
         img = img.resize((img_sz, img_sz))
@@ -281,7 +318,7 @@ def get_images(case_id, fov, Round, panel, anno_df, img_dir, img_sz=512):
         draw_loc = (5, 5)
         draw.text(draw_loc, channel_names[i], fill=255)
 
-        draw_loc = (img_sz-35, 5)
+        draw_loc = (img_sz - 35, 5)
         if anno_df is not None:
             draw.text(draw_loc, annotations[i_idx], fill=255)
 
@@ -291,6 +328,48 @@ def get_images(case_id, fov, Round, panel, anno_df, img_dir, img_sz=512):
         # print(channel_names[i])
         all_img[0: img_sz, i_idx * img_sz: (i_idx + 1) * img_sz, :] = img_color_arr
     return all_img
+
+def get_images(case_id, fov, Round, panel, anno_df, img_dir, img_sz=512):
+    global annotations
+    c_maps = ['Blues', 'Greens', 'Oranges', 'Reds', 'Purples']
+    if anno_df is not None:
+        annotations, _ = get_overall_annotations(anno_df, panel, fov, Round)
+
+    fn = os.path.join(img_dir, case_id + "_region_{:03d}.ome.tiff".format(fov))
+    openOME = tf.TiffFile(fn)
+    channel_names = get_channel_names(openOME)
+    # for n in channel_names:
+    #     print(n)
+    indx = get_channel_index(panel, Round, channel_names)
+    all_img = np.zeros((img_sz, img_sz * len(indx), 4)).astype(np.uint8)
+    for i_idx, i in enumerate(indx):
+        if i != -1:
+            img_arr = openOME.pages[i].asarray().astype(np.float)
+            img_arr = (255.0 * (img_arr - np.amin(img_arr)) / np.ptp(img_arr)).astype(np.uint8)
+        else:
+            img_arr = np.zeros((img_sz, img_sz), dtype=np.uint8)
+        img = Image.fromarray(img_arr, mode="L")
+        enhancer = ImageEnhance.Sharpness(img)
+        img = enhancer.enhance(5.8)
+        # https://ipython-books.github.io/111-manipulating-the-exposure-of-an-image/
+        # img = skie.equalize_adapthist(img)
+        img = img.resize((img_sz, img_sz))
+
+        draw = ImageDraw.Draw(img)
+        draw_loc = (5, 5)
+        draw.text(draw_loc, channel_names[i], fill=255)
+
+        draw_loc = (img_sz - 35, 5)
+        if anno_df is not None:
+            draw.text(draw_loc, annotations[i_idx], fill=255)
+
+        cm_hot = mpl.cm.get_cmap(c_maps[i_idx])
+        im = cm_hot(np.array(img))
+        img_color_arr = np.uint8(im * 255)
+        # print(channel_names[i])
+        all_img[0: img_sz, i_idx * img_sz: (i_idx + 1) * img_sz, :] = img_color_arr
+    return all_img
+
 
 def get_staining_orders(panel):
     # get staining orders and round #
@@ -315,6 +394,7 @@ def get_staining_orders(panel):
             markers_in_rounds.append(markers)
     return meaningful_rounds, markers_in_rounds
 
+
 def convert_score_to_value(list_txt_score):
     grades = ["Poor", "Fair", "Good", "Excellent"]  # 0, 1, 2, 3
     score_val = []
@@ -325,6 +405,7 @@ def convert_score_to_value(list_txt_score):
             score_val.append(grades.index(sc.strip()))
     return score_val
 
+
 def get_colors(color_val_list):
     # colors = ['#400000', '#800000', '#BF0000', '#FF0000']
     colors = ['r', 'm', 'b', 'g']
@@ -334,6 +415,7 @@ def get_colors(color_val_list):
     for c in color_val_list:
         color_list.append(colors[c])
     return color_list
+
 
 def plot_marker_quality_scatter(panel, FOV_range, anno_df, ssim_pick_dir, out_dir):
     # for each round, read samples (regions), if there is potential issue (measured by DAPI SSIM)
@@ -370,7 +452,6 @@ def plot_marker_quality_scatter(panel, FOV_range, anno_df, ssim_pick_dir, out_di
             x = np.log(np.array(ssim_avg_list) / (1 - np.array(ssim_avg_list)))
             y = np.log(np.array(ssim_std_list) / (1 - np.array(ssim_std_list)))
 
-
             if len(markers_in_the_round) == 1:
                 plt.scatter(x, y, marker='o', c=get_colors(anno_score_arr), s=15)
 
@@ -387,19 +468,10 @@ def plot_marker_quality_scatter(panel, FOV_range, anno_df, ssim_pick_dir, out_di
         colors = ['r', 'm', 'b', 'g']
         scores = ["Poor", "Fair", "Good", "Excellent"]
         legend_elements = [Line2D([0], [0], marker='o', color='w', markerfacecolor=colors[0], label=scores[0]),
-                        Line2D([0], [0], marker='o',  color='w', markerfacecolor=colors[1], label=scores[1]),
-                        Line2D([0], [0], marker='o', color='w', markerfacecolor=colors[2], label=scores[2]),
-                        Line2D([0], [0], marker='o', color='w', markerfacecolor=colors[3], label=scores[3])]
+                           Line2D([0], [0], marker='o', color='w', markerfacecolor=colors[1], label=scores[1]),
+                           Line2D([0], [0], marker='o', color='w', markerfacecolor=colors[2], label=scores[2]),
+                           Line2D([0], [0], marker='o', color='w', markerfacecolor=colors[3], label=scores[3])]
         plt.legend(handles=legend_elements)
-
 
         plt.savefig(save_to)
         plt.close()
-
-
-
-
-
-
-
-
