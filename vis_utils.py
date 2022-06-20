@@ -6,8 +6,9 @@ In QuPath, 1% dark pixels and 1% bright pixels should be saturated. Use this cri
 bound of display range within the histogram (n_bin=1024) of image array.
 '''
 
+
 class histogram_MxIF:
-    def __init__(self, img_arr, NUM_BINS = 1024):
+    def __init__(self, img_arr, NUM_BINS=1024):
         self.hist, self.bin_edges = np.histogram(img_arr, bins=NUM_BINS)
 
     def getCountSum(self):
@@ -29,20 +30,21 @@ class histogram_MxIF:
         return self.bin_edges[idx]
 
     def getBinRightEdge(self, idx):
-        return self.bin_edges[idx+1]
+        return self.bin_edges[idx + 1]
 
     def getBinWidth(self, ind):
         return self.getBinRightEdge(ind) - self.getBinLeftEdge(ind)
 
+
 # set range of display
 def autoSetDisplayRange(img_arr, saturation=0.01):
-    '''
-    get the min and max pixel value in the display
+    """
+    get the min and max pixel value for determining the display range
     :param img_arr: image array
     :param saturation: 	 Controls percentage of saturated pixels to apply when automatically setting brightness/contrast.
 	 * A value of 0.01 indicates that approximately 1% dark pixels and 1% bright pixels should be saturated.
-    :return:
-    '''
+    :return: min and max pixel value range
+    """
     histogram = histogram_MxIF(img_arr)
     if saturation <= 0 or saturation >= 1:
         print("Cannot set display range, wrong saturation")
@@ -83,4 +85,3 @@ def autoSetDisplayRange(img_arr, saturation=0.01):
         count -= nextCount
         ind -= 1
     return minDisplay, maxDisplay
-
