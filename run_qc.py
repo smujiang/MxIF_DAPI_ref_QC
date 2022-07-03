@@ -1,11 +1,13 @@
 import multiprocessing
 import os
+
+import argparse
 import numpy as np
 import json
 from quality_eval import det_halo_artifacts, det_tissue_damage, get_low_quality_rounds, get_marker_txt_name_by_round
 from utils import get_panel_design, get_SSIM_array, get_SSIM_array_from_dapi, plot_SSIM_array, \
     get_dapis_for_a_ROI, get_dapis_std, plot_dapi_thumbnails, plot_dapi_std, \
-    get_meaningful_round, pretty_marker_name_list
+    pretty_marker_name_list, get_FOV_count, get_iteration_count
 
 html_str_css = """
 <style>
@@ -98,21 +100,38 @@ def create_json_obj(tissue_off_results, vec_DAPI_SSIM_avg_list, FOV_artifacts_re
     return json_object
 
 if __name__ == '__main__':
-    img_base_dir = "/research/bsi/archive/PI/Goode_Ellen_m004290/tertiary/s302493.MxIF_Ovarian_Cancer/integrated/OVCA_TMA22_Pilot"  # aligned image directory
-    case_ID = "OVCA_TMA22"
-    out_base_Dir = "/research/bsi/projects/staff_analysis/m192500/MxIF_CellSeg/OME_TIFF/QC_out"
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-i", "--aligned_img_dir",
+                        required=True,
+                        dest='Aligned_img_dir',
+                        help="Aligned image directory")
+
+    parser.add_argument("-c", "--case_id",
+                        required=True,
+                        dest="case_id",
+                        help="Case ID, Type: string")
+
+    parser.add_argument("-o", "--output_dir",
+                        default=os.getcwd(),
+                        dest='output_dir',
+                        help="Metrics output directory")
+
+    args = parser.parse_args()
+    img_base_dir = args.Aligned_img_dir
+    case_ID = args.case_id
+    out_base_Dir = args.output_dir
 
     Aligned_img_dir = os.path.join(img_base_dir, case_ID, "RegisteredImages")
     qc_out_dir = os.path.join(out_base_Dir, case_ID, "DAPI_QC")
     if not os.path.exists(qc_out_dir):
         os.makedirs(qc_out_dir)
 
-    N_FOVs = 348  # TODO: uncomment to debug
-    N_iter = 30  # TODO: uncomment to debug
-    # N_FOVs = get_FOV_count(Aligned_img_dir) # TODO: uncomment to release
-    # N_iter = get_iteration_count(Aligned_img_dir)  # TODO: uncomment to release
+    # N_FOVs = 348  # TODO: uncomment to debug
+    # N_iter = 30  # TODO: uncomment to debug
+    N_FOVs = get_FOV_count(Aligned_img_dir) # TODO: uncomment to release
+    N_iter = get_iteration_count(Aligned_img_dir)  # TODO: uncomment to release
 
-    range_FOVs = range(244, N_FOVs)
+    range_FOVs = range(1, N_FOVs)
     range_iter = range(2, N_iter)
 
     def pre_report(roi):
