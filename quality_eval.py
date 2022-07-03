@@ -3,7 +3,7 @@ import os
 import pickle
 from sklearn.metrics import roc_curve, auc, precision_recall_fscore_support
 import matplotlib.pyplot as plt
-from utils import get_SSIM_array, get_dapis_for_a_ROI, get_dapis_std
+from utils import get_SSIM_array, get_dapis_for_a_ROI, get_dapis_std, get_staining_orders, get_overall_annotations
 
 # FOVs with halo-like artifacts
 halo_art = ["region_28", "region_36", "region_40", "region_46", "region_134", "region_135",
@@ -49,7 +49,7 @@ def load_annotation(FOV_N):
 def eval_tissue_damage(pickle_dir, ROI_range, FOV_miss_binary, vis_dir):
     fit_errs = []
     for r in ROI_range:  # regions range
-        fn = os.path.join(pickle_dir, "dapi_ssim", "ssim_array_region" + str(r) + ".pickle")
+        fn = os.path.join(pickle_dir, "dapi_ssim_array", "ssim_array_region" + str(r) + ".pickle")
         fp = open(fn, 'rb')
         ssim_array = pickle.load(fp)
         m = ssim_array.shape[0]
@@ -114,28 +114,52 @@ def eval_tissue_damage(pickle_dir, ROI_range, FOV_miss_binary, vis_dir):
     # save_to = os.path.join(vis_dir, "tissue_missing_ROC.png")
     # plt.savefig(save_to)
 
-def det_tissue_damage(best_threshold, FOVs, ssim_pickle_dir, Aligned_img_dir, N_iteration):
+def det_tissue_damage(best_threshold, FOVs, qc_out_dir, Aligned_img_dir, N_iteration):
     results = []
+    vec_DAPI_SSIM_avg_list = []
     for FOV in FOVs:
-        fn = os.path.join(ssim_pickle_dir, "ssim_array_region" + str(FOV) + ".pickle")
+        fn = os.path.join(qc_out_dir, "ssim_array_region" + str(FOV) + ".pickle")
         if os.path.exists(fn):
             fp = open(fn, 'rb')
             ssim_array = pickle.load(fp)
         else:
-            ssim_array = get_SSIM_array(FOV, Aligned_img_dir, N_iteration, ssim_pickle_dir)
+            ssim_array = get_SSIM_array(FOV, Aligned_img_dir, N_iteration, qc_out_dir)
+
         m = ssim_array.shape[0]
         idx = (np.arange(1, m + 1) + (m + 1) * np.arange(m - 1)[:, None]).reshape(m, -1)
         ssim_array = ssim_array.ravel()[idx]
-
         vec_DAPI_SSIM_avg = np.mean(ssim_array, axis=1)
+        vec_DAPI_SSIM_avg_list.append(vec_DAPI_SSIM_avg)
         fit_err = np.sum(1 - vec_DAPI_SSIM_avg)
-
         if fit_err < best_threshold:  # if there is no tissue off
             results.append(False)
         else:
             print("Region %d tissue damage detected" % FOV)
             results.append(True)
-    return results
+    return results, vec_DAPI_SSIM_avg_list
+
+def get_low_quality_rounds(fov_id, dapi_ssim_result, vec_DAPI_SSIM_avg_list, dapi_std_result, threshold=0.7):
+    # print(dapi_ssim_result)
+    # print(dapi_std_result)
+    # print(fov_id)
+    if dapi_ssim_result[fov_id-1] or dapi_std_result[fov_id-1]:
+        rr = np.where(vec_DAPI_SSIM_avg_list[fov_id-1] > threshold)[0]
+        ssim_score = np.array(vec_DAPI_SSIM_avg_list[fov_id-1])[rr]
+        return rr, ssim_score
+    else:
+        return None, None
+
+def get_marker_txt_name_by_round(panel, round_list):
+    marker_txt = []
+    if round_list is not None:
+        for r in round_list:
+            round_key = "S{:03d}".format(r)
+            if round_key in panel.keys():
+                markers = panel[round_key]
+                marker_txt.append(markers)
+            else:
+                print("not a marker round")
+    return marker_txt
 
 def eval_halo_artifacts(QC_out_dir, ROIs, halo_art_binary, vis_dir):
     halo_anno = []
@@ -169,10 +193,10 @@ def eval_halo_artifacts(QC_out_dir, ROIs, halo_art_binary, vis_dir):
     ########################################################################################################
     iz = np.argmax(np.array(fscore_list))
     best_value_str = 'Best option: \n precision=%.3f \n recall=%.3f, \n F1=%.3f' % (precision_list[iz], recall_list[iz], fscore_list[iz])
-    str_wrt = 'Best Threshold=%.3f' % (roc_threshold_range[iz])
-    print(str_wrt)
-    best_threshold_ssim_fn = os.path.join(QC_out_dir, "best_dapi_std_threshold.pickel")
-    with open(best_threshold_ssim_fn, "wb") as fp:
+    best_threshold = roc_threshold_range[iz]
+    print('Best Threshold=%.3f' % best_threshold)
+    best_threshold_fn = os.path.join(QC_out_dir, "best_dapi_std_threshold.pickel")
+    with open(best_threshold_fn, "wb") as fp:
         pickle.dump(roc_threshold_range[iz], fp)
 
     plt.figure()
@@ -204,11 +228,13 @@ def eval_halo_artifacts(QC_out_dir, ROIs, halo_art_binary, vis_dir):
     # plt.legend(loc="lower right")
     # save_to = os.path.join(vis_dir, "halo_artifacts_ROC.png")
     # plt.savefig(save_to)
+    return best_threshold
 
 def det_halo_artifacts(best_threshold_dapi_std, FOVs, QC_out_dir, Aligned_img_dir, N_range):
-    results = []
+    FOV_results = []
+    Round_results = []
     for FOV in FOVs:
-        fn = os.path.join(QC_out_dir, "dapi_std_img" + str(FOV) + ".pickle")
+        fn = os.path.join(QC_out_dir, "dapi_std_img", str(FOV) + ".pickle")
         if os.path.exists(fn):
             fp = open(fn, 'rb')
             std_img = pickle.load(fp)
@@ -216,12 +242,35 @@ def det_halo_artifacts(best_threshold_dapi_std, FOVs, QC_out_dir, Aligned_img_di
             dapi_imgs = get_dapis_for_a_ROI(FOV, Aligned_img_dir, N_range, gray_scale=(0, 255))
             std_img = get_dapis_std(dapi_imgs, QC_out_dir, FOV)  # save dapi std
 
+        # Round_results.append(std_img > best_threshold_dapi_std)
         std_img_avg = np.average(std_img)
         if std_img_avg < best_threshold_dapi_std:  # if there is no artifact
-            results.append(False)
+            FOV_results.append(False)
         else:
             print("Region %d halo-like artifacts detected" % FOV)
-            results.append(True)
-    return results
+            FOV_results.append(True)
+    return FOV_results, Round_results
 
+
+def create_QC_stat_vis(FOV_results, Round_results, anno_df, panel_design, output_dir):
+    meaningful_rounds, markers_in_rounds = get_staining_orders(panel_design)
+    QC_pass_scores = []
+    QC_fail_scores = []
+    for idx_f_r, f_r in enumerate(FOV_results):
+        if f_r:
+            for idx_rr, rr in enumerate(Round_results[idx_f_r]):
+                if idx_rr+2 in meaningful_rounds:
+                    anno_txt_list, anno_scores = get_overall_annotations(anno_df, panel_design, f_r, idx_rr + 2)
+                    if rr:
+                        QC_pass_scores.append(anno_scores)
+                    else:
+                        QC_fail_scores.append(anno_scores)
+
+    plt.figure(1, dpi=300)
+    plt.hist(QC_pass_scores, bins=4, histtype="step")
+    plt.hist(QC_fail_scores, bins=4, histtype="step")
+    plt.grid()
+    plt.legend(["QC_pass", "QC_fail"])
+    save_to = os.path.join(output_dir, "QC_stat_hist.png")
+    plt.savefig(save_to)
 
