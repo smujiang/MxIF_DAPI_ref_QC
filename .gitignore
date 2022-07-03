@@ -1,3 +1,10 @@
 
 prepare_qc_files.py
 prepare_qc_with_annotation.py
+.idea/vcs.xml
+.idea/deployment.xml
+.idea/inspectionProfiles/profiles_settings.xml
+.idea/misc.xml
+.idea/modules.xml
+.idea/MxIF_QC.iml
+.idea/workspace.xml
