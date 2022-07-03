@@ -1,160 +1,185 @@
 import multiprocessing
 import os
-import argparse
-import pandas as pd
-import pickle
+import numpy as np
+import json
+from quality_eval import det_halo_artifacts, det_tissue_damage, get_low_quality_rounds, get_marker_txt_name_by_round
+from utils import get_panel_design, get_SSIM_array, get_SSIM_array_from_dapi, plot_SSIM_array, \
+    get_dapis_for_a_ROI, get_dapis_std, plot_dapi_thumbnails, plot_dapi_std, \
+    get_meaningful_round, pretty_marker_name_list
 
-from utils import get_panel_design, get_SSIM_array, plot_SSIM_array, \
-    get_dapis_for_a_ROI, get_dapis_std, plot_dapi_thumbnails, plot_dapi_std, vis_marker_images, \
-    plot_marker_quality_scatter, get_meaningful_round
-from quality_eval import load_annotation, eval_tissue_damage, det_tissue_damage, eval_halo_artifacts, det_halo_artifacts
+html_str_css = """
+<style>
+table.minimalistBlack {
+border: 3px solid #000000;
+text-align: center;
+border-collapse: collapse;
+}
+table.minimalistBlack td, table.minimalistBlack th {
+border: 1px solid #000000;
+padding: 5px 8px;
+}
+table.minimalistBlack tbody td {
+font-size: 15px;
+}
+table.minimalistBlack thead {
+background: #CFCFCF;
+background: -moz-linear-gradient(top, #dbdbdb 0%, #d3d3d3 66%, #CFCFCF 100%);
+background: -webkit-linear-gradient(top, #dbdbdb 0%, #d3d3d3 66%, #CFCFCF 100%);
+background: linear-gradient(to bottom, #dbdbdb 0%, #d3d3d3 66%, #CFCFCF 100%);
+border-bottom: 3px solid #000000;
+}
+table.minimalistBlack thead th {
+font-size: 19px;
+font-weight: bold;
+color: #000000;
+text-align: left;
+}
+table.minimalistBlack tfoot td {
+font-size: 14px;
+}
+</style>
+"""
 
-# parser = argparse.ArgumentParser()
-# parser.add_argument("-aid", "--aid",
-#                     required=True,
-#                     dest='Aligned_img_dir',
-#                     help="Aligned image directory")
-#
-# parser.add_argument("-c", "--cid",
-#                     required=True,
-#                     dest="case_id",
-#                     help="Case ID, Type: string")
-#
-# parser.add_argument("-r", "--rois",
-#                     required=True,
-#                     dest="ROIs",
-#                     help="ROI id list, Type: list/range")
-#
-# parser.add_argument("-N", "--N_iterations",
-#                     required=True,
-#                     dest="rounds",
-#                     help="Total number of imaging iterations")
-#
-# parser.add_argument("-otd", "--otd",
-#                     default=os.getcwd(),
-#                     dest='otd',
-#                     help="OME tiff file saving directory")
-#
-# parser.add_argument("-af", "--af",
-#                     default="",
-#                     dest='af',
-#                     help="Annotation file name with full path")
-#
-# parser.add_argument("-od", "--output",
-#                     default=os.getcwd(),
-#                     dest='output',
-#                     help="Metrics output directory")
-#
-# parser.add_argument("-vd", "--vis",
-#                     default=os.getcwd(),
-#                     dest='vis',
-#                     help="Visualization output directory")
-#
-# args = parser.parse_args()
-# Aligned_img_dir = args.aid
-# case_id = args.case_id
-# ROIs = args.ROIs
-# N_it = args.rounds
-# OME_TIFF_dir = args.otd
-# annotation_fn = args.af
-# QC_out_dir = os.path.join(args.output, case_id)  # output directory: save pickle files for arrays, variables.
-# vis_dir = os.path.join(args.vis, case_id)  # output directory: save pictures/plots
+def generateHTMLTable(tissue_off_results, vec_DAPI_SSIM_avg_list, FOV_artifacts_results, panel_des):
+    htmlList = ["</br><div><h3>DAPI referenced evaluation</h3>", "<table class=\"minimalistBlack\">",
+                "<tr><th>Region ID</th><th>Tissue Damage</th><th>Artifacts</th><th>Notes</th><th>DAPI thumbnails</th><th>DAPI SSIM array</th><th>DAPI std image</th></tr>"]
+    for idx, r in enumerate(tissue_results):
+        low_q_round, scores = get_low_quality_rounds(idx+1, tissue_off_results, vec_DAPI_SSIM_avg_list, FOV_artifacts_results)
+        recom_txt = ""
+        DAPI_thumbnails = "<img style='max-width: 250px;' src='" + os.path.join("./DAPI_thumbnails", "ROI_" + str(idx+1) + "_all_dapi.png") + "'>"
+        dapi_ssim_array = "<img style='max-width: 250px;' src='" + os.path.join("./dapi_ssim_array", "ssim_img_region" + str(idx+1) + ".png") + "'>"
+        std_img = "<img style='max-width: 250px;' src='" + os.path.join("./dapi_std_img", "std_img_" + str(idx+1) + ".png") + "'>"
+        if r:
+            tissue_damage_indicator = "<p style='color:red'>Detected</p>"
+            recom_txt += "<p> Suspect tissue damage.</p>"
+        else:
+            tissue_damage_indicator = "undetected"
+        if FOV_results[idx]:
+            artifacts_indicator = "<p style='color:red'>Detected</p>"
+            recom_txt += "<p> Suspect artifact.</p>"
+        else:
+            artifacts_indicator = "undetected"
+        if r or FOV_results[idx]:
+            marker_txt = get_marker_txt_name_by_round(panel_des, low_q_round)
+            recom_txt += "<p> Low quality markers: " + pretty_marker_name_list(marker_txt) + "</p>"
 
+        wrt_row = "<tr><th>%d</th><th>%s</th><th>%s</th><th>%s</th><th>%s</th><th>%s</th><th>%s</th></tr>" % (idx+1, tissue_damage_indicator, artifacts_indicator, recom_txt, DAPI_thumbnails, dapi_ssim_array, std_img)
+        # wrt_row = "<tr><th>%d</th><th>%s</th><th>%s</th><th>%s</th></tr>" % (idx, tissue_damage_indicator, artifacts_indicator, recom_txt)
+        htmlList.append(wrt_row)
+    htmlList.append("</table></div>")
+    return "\n".join(htmlList)
 
-# example:
-Aligned_img_dir = "/research/bsi/archive/PI/Goode_Ellen_m004290/tertiary/s302493.MxIF_Ovarian_Cancer/integrated/OVCA_TMA22_Pilot/OVCA_TMA22/RegisteredImages"  # aligned image directory
-case_id = "OVCA_TMA22"  # case ID
-ROIs = range(1, 348)  # range/list of ROIs
-# ROIs = range(1, 3)  # range/list of ROIs
-N_range = range(2, 32)  # range of imaging iterations (skip the first round, as it's an overview of slide)
-OME_TIFF_dir = "/research/bsi/projects/staff_analysis/m192500/MxIF_CellSeg/OVCA_TMA22/OME_TIFF_Images"  # directory to save OME.TIFF files
-annotation_fn = "./OVTMA_MarkerQCAnnotations_FromJun_upgraded_04_08_2022.txt"  # annotation csv file name
-output = "/research/bsi/projects/staff_analysis/m192500/MxIF_CellSeg/OME_TIFF/QC_out"
-vis = "/research/bsi/projects/staff_analysis/m192500/MxIF_CellSeg/OME_TIFF/QC_vis"
-QC_out_dir = os.path.join(output, case_id)  # output directory: save pickle files for arrays, variables.
-vis_dir = os.path.join(vis, case_id)  # output directory: save pictures/plots
+def create_json_obj(tissue_off_results, vec_DAPI_SSIM_avg_list, FOV_artifacts_results, panel_des):
+    result_dic = []
+    for idx, r in enumerate(tissue_results):
+        low_q_round, scores = get_low_quality_rounds(idx + 1, tissue_off_results, vec_DAPI_SSIM_avg_list,
+                                                     FOV_artifacts_results)
+        if r:
+            tissue_damage_indicator = "True"
+        else:
+            tissue_damage_indicator = "False"
+        if FOV_results[idx]:
+            artifacts_indicator = "True"
+        else:
+            artifacts_indicator = "False"
+        if r or FOV_results[idx]:
+            marker_txt = get_marker_txt_name_by_round(panel_des, low_q_round)
+        else:
+            marker_txt = ""
 
-def calculate_all(roi):
-    ssim_array = get_SSIM_array(roi, Aligned_img_dir, N_range, QC_out_dir)
-    plot_SSIM_array(ssim_array, roi, N_range, vis_dir)  # create figures()
+        fov_result = {
+            "FOV_ID": str(idx+1),
+            "tissue_damage_indicator": tissue_damage_indicator,
+            "artifacts_indicator": artifacts_indicator,
+            "low_quality_markers": str(marker_txt)
+        }
+        result_dic.append(fov_result)
+    json_object = json.dumps(result_dic, indent=4)
+    return json_object
 
-    dapi_imgs = get_dapis_for_a_ROI(roi, Aligned_img_dir, N_range, gray_scale=(0, 255))
-    std_img = get_dapis_std(dapi_imgs, QC_out_dir, roi)  # save dapi std
-    plot_dapi_thumbnails(dapi_imgs, roi, vis_dir)  # TODO: have issue, don't show?
-    plot_dapi_std(std_img, roi, vis_dir)  # TODO: double check
+if __name__ == '__main__':
+    img_base_dir = "/research/bsi/archive/PI/Goode_Ellen_m004290/tertiary/s302493.MxIF_Ovarian_Cancer/integrated/OVCA_TMA22_Pilot"  # aligned image directory
+    case_ID = "OVCA_TMA22"
+    out_base_Dir = "/research/bsi/projects/staff_analysis/m192500/MxIF_CellSeg/OME_TIFF/QC_out"
 
-if not os.path.exists(OME_TIFF_dir):
-    print("TODO: create OME.TIFF file")
-elif not os.path.exists(annotation_fn):
-    print("Annotation not exists, some results may not generated.")
-else:
-    # get panel design
-    int_img_dir = os.path.split(Aligned_img_dir)[0]
-    panel_des = get_panel_design(int_img_dir, QC_out_dir)
+    Aligned_img_dir = os.path.join(img_base_dir, case_ID, "RegisteredImages")
+    qc_out_dir = os.path.join(out_base_Dir, case_ID, "DAPI_QC")
+    if not os.path.exists(qc_out_dir):
+        os.makedirs(qc_out_dir)
 
+    N_FOVs = 348  # TODO: uncomment to debug
+    N_iter = 30  # TODO: uncomment to debug
+    # N_FOVs = get_FOV_count(Aligned_img_dir) # TODO: uncomment to release
+    # N_iter = get_iteration_count(Aligned_img_dir)  # TODO: uncomment to release
+
+    range_FOVs = range(244, N_FOVs)
+    range_iter = range(2, N_iter)
+
+    def pre_report(roi):
+        print("\t processing ROI %d" % roi)
+        dapi_imgs = get_dapis_for_a_ROI(roi, Aligned_img_dir, range_iter)  # get all DAPI images
+        plot_dapi_thumbnails(dapi_imgs, roi, qc_out_dir)  # create DAPI thumbnails
+
+        ssim_array = get_SSIM_array(roi, Aligned_img_dir, range_iter, qc_out_dir)
+        # ssim_array = get_SSIM_array_from_dapi(dapi_imgs, roi, range_iter, qc_out_dir)  # save DAPI SSIM to pickle file
+        plot_SSIM_array(ssim_array, roi, range_iter, qc_out_dir)  # create SSIM array heatmaps
+
+        std_img = get_dapis_std(dapi_imgs, qc_out_dir, roi)  # save DAPI std to pickle file
+        plot_dapi_std(std_img, roi, qc_out_dir)
+
+    ########################################################
+    # calculate metrics and create images
+    ########################################################
+    print("Creating metrics and images")
     # Calculate QC metrics: SSIM and std (using multiprocessing)
-    # a_pool = multiprocessing.Pool(4)
-    # a_pool.map(calculate_all, ROIs)
+    a_pool = multiprocessing.Pool(32)
+    a_pool.map(pre_report, range_FOVs)
 
-    # Calculate QC metrics: SSIM and std
-    for roi in ROIs:
-        print("processing ROI %d" % roi)
-        ssim_array = get_SSIM_array(roi, Aligned_img_dir, N_range, QC_out_dir)
-        plot_SSIM_array(ssim_array, roi, N_range, vis_dir)  # create figures()
+    # Calculate QC metrics: SSIM and std (using single thread)
+    # for roi in range_FOVs:
+    #     print("\t processing ROI %d" % roi)
+    #
+    #     dapi_imgs = get_dapis_for_a_ROI(roi, Aligned_img_dir, range_iter)  # get all DAPI images
+    #     plot_dapi_thumbnails(dapi_imgs, roi, qc_out_dir)  # create DAPI thumbnails
+    #
+    #     ssim_array = get_SSIM_array(roi, Aligned_img_dir, range_iter, qc_out_dir)
+    #     # ssim_array = get_SSIM_array_from_dapi(dapi_imgs, roi, range_iter, qc_out_dir)  # save DAPI SSIM to pickle file
+    #     plot_SSIM_array(ssim_array, roi, range_iter, qc_out_dir)  # create SSIM array heatmaps
+    #
+    #     std_img = get_dapis_std(dapi_imgs, qc_out_dir, roi)  # save DAPI std to pickle file
+    #     plot_dapi_std(std_img, roi, qc_out_dir)
 
-        dapi_imgs = get_dapis_for_a_ROI(roi, Aligned_img_dir, N_range, gray_scale=(0, 255))
-        std_img = get_dapis_std(dapi_imgs, QC_out_dir, roi)  # save dapi std
-        plot_dapi_thumbnails(dapi_imgs, roi, vis_dir)  # TODO: double check
-        plot_dapi_std(std_img, roi, vis_dir)  # TODO: double check
+    ########################################################
+    # get detection results
+    ########################################################
+    tissue_dam_threshold = 4.253  # default values
+    artifacts_threshold = 7.77  # default values
+    tissue_results, vec_DAPI_SSIM_avg_list = det_tissue_damage(tissue_dam_threshold, range_FOVs, qc_out_dir, Aligned_img_dir, range_iter)
+    FOV_results, _ = det_halo_artifacts(artifacts_threshold, range_FOVs, qc_out_dir, Aligned_img_dir, range_iter)
 
-    # load overall annotations and evaluate performance accordingly, or detect quality issues
-    if os.path.exists(annotation_fn):
-        # plot scatter plot based on annotation
-        anno_df = pd.read_csv(annotation_fn, sep='\t')
-        # plot_marker_quality_scatter(panel_des, ROIs, anno_df, QC_out_dir, vis_dir)
+    ########################################################
+    # create html reports
+    ########################################################
+    panel_des = get_panel_design(os.path.join(img_base_dir, case_ID), qc_out_dir)
 
-        # Evaluate or detect: 1) tissue damage; 2) halo artifacts
-        FOV_miss_binary, halo_art_binary = load_annotation(ROIs)
-        if FOV_miss_binary is not None:
-            # evaluate and save the best threshold to file name
-            eval_tissue_damage(QC_out_dir, ROIs, FOV_miss_binary, vis_dir)
-        else:
-            best_threshold_ssim_fn = os.path.join(QC_out_dir, "best_ssim_threshold.pickel") # the best threshold
-            if not os.path.exists(best_threshold_ssim_fn):
-                print("Don't have tissue damage annotation, use saved threshold to detect.")
-                best_threshold_ssim = 4.253  # use hard code values
-            else:
-                fp = open(best_threshold_ssim_fn, "wb")
-                best_threshold_ssim = pickle.load(fp)
-            results = det_tissue_damage(best_threshold_ssim, ROIs, QC_out_dir, Aligned_img_dir, N_range)
-            print()
+    print("Creating html reports")
+    Html_Out_fn = os.path.join(qc_out_dir, case_ID + "_dapi_ref_qc_report.html")
 
-        if halo_art_binary is not None:
-            # evaluate and save the best threshold to file name
-            eval_halo_artifacts(QC_out_dir, ROIs, halo_art_binary, vis_dir)
-        else:
-            best_threshold_dapi_std_fn = os.path.join(QC_out_dir, "best_dapi_std_threshold.pickel")
-            if not os.path.exists(best_threshold_dapi_std_fn):
-                print("Don't have halo artifacts annotation, use saved threshold to detect.")
-                best_threshold_dapi_std = 7.77  # use hard code values
-            else:
-                fp = open(best_threshold_dapi_std_fn, "wb")
-                best_threshold_dapi_std = pickle.load(fp)
-            det_halo_artifacts(best_threshold_dapi_std, ROIs, QC_out_dir, Aligned_img_dir, N_range)  # TODO:
-    else:
-        anno_df = None
+    Html_Out_file = open(Html_Out_fn, "w")
+    Html_Out_file.write(html_str_css)
 
-    # visualize markers in the same round
-    n_round, _ = get_meaningful_round(panel_des, N_range)  # skip the bleaching round
-    for fov in ROIs:
-        for r in n_round:
-            out_dir = os.path.join(vis_dir, "Markers_per_round")
-            if not os.path.exists(out_dir):
-                os.makedirs(out_dir)
-            vis_marker_images(case_id, fov, r, panel_des, anno_df, OME_TIFF_dir, out_dir)
+    h1 = generateHTMLTable(tissue_results, vec_DAPI_SSIM_avg_list, FOV_results, panel_des)
+    Html_Out_file.write(h1)
+    Html_Out_file.close()
 
-
-
+    ########################################################
+    # create json file
+    ########################################################
+    print("Creating json file")
+    json_object = create_json_obj(tissue_results, vec_DAPI_SSIM_avg_list, FOV_results, panel_des)
+    json_fn = os.path.join(qc_out_dir, case_ID + "_dapi_ref_qc_result.json")
+    with open(json_fn, "w") as outfile:
+        outfile.write(json_object)
 
 
 
