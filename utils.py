@@ -1,5 +1,4 @@
 import os, sys, io
-
 import numpy
 import numpy as np
 from glob import glob
@@ -13,11 +12,11 @@ from PIL import Image, ImageDraw, ImageEnhance
 import xml.etree.ElementTree
 from vis_utils import autoSetDisplayRange
 
-def get_FOV_count(Aligned_img_dir):
-    return len(glob.glob(os.path.join(Aligned_img_dir, 'S002', "*mono_dapi_*.tif")))
+def get_FOV_count(Aligned_img_case_dir):
+    return len(glob(os.path.join(Aligned_img_case_dir, 'S002', "*mono_dapi_*.tif")))
 
-def get_iteration_count(Aligned_img_dir):
-    return len(glob.glob(os.path.join(Aligned_img_dir))) - 1
+def get_iteration_count(Aligned_img_case_dir):
+    return len(glob(os.path.join(Aligned_img_case_dir))) - 1
 
 def get_panel_design(Aligned_img_dir, panel_save_dir):
     save_to = os.path.join(panel_save_dir, "panel_design.pickle")
