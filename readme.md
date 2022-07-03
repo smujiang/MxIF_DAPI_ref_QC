@@ -1,7 +1,7 @@
 # INCell MxIF Quality Assessment [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
 This repository contains code linked to pre-publication work of ....
-The code contained within has been developed to generate meterics and report the image quality coming fromt he Cytiva/Leica INCEll MxIF Microscope.
+The code contained within has been developed to generate metrics and report the image quality coming from he Cytiva/Leica INCEll MxIF Microscope.
 
 
 ## Installation & Setup (MacOS/Linux)
@@ -23,13 +23,15 @@ Configure your Python enviroment:
 
 ## Python Utility Script
 
-### 1. Compute meterics on images
+### Compute metrics on images and create reports
 
 __Filename:__ `run_qc.py`
 
-__Purpose:__ This python script is intended to collect/calculate ....
+__Purpose:__ This python script is intended to automatically evaluate MxIF image qualities using DAPI rounds as reference.
+1. QC reports will be created, including json and html versions.
+2. Intermedia evaluation metrics will be saved for advanced users.
 
-__CLI:__ `python run_qc.py -i <path to processor dir> -o <path to output dir>`
+__CLI:__ `python run_qc.py -i <path to processor dir> -o <path to output dir> -c <case id to be evaluated>`
 
 
 
