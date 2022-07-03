@@ -13,6 +13,12 @@ from PIL import Image, ImageDraw, ImageEnhance
 import xml.etree.ElementTree
 from vis_utils import autoSetDisplayRange
 
+def get_FOV_count(Aligned_img_dir):
+    return len(glob.glob(os.path.join(Aligned_img_dir, 'S002', "*mono_dapi_*.tif")))
+
+def get_iteration_count(Aligned_img_dir):
+    return len(glob.glob(os.path.join(Aligned_img_dir))) - 1
+
 def get_panel_design(Aligned_img_dir, panel_save_dir):
     save_to = os.path.join(panel_save_dir, "panel_design.pickle")
     if os.path.exists(save_to):
@@ -66,8 +72,15 @@ def read_dapi(fn, scale_to=(0, 65535)):
     else:
         raise Exception("file not exist")
 
+def pretty_marker_name_list(marker_names_in_list):
+    wrt_str = ""
+    for l in marker_names_in_list:
+        for m in l:
+            if not m=="-":
+                wrt_str += (m + ", ")
+    return wrt_str
 
-def get_dapis_for_a_ROI(roi_idx, img_dir, img_rounds, gray_scale=None, resize_to=None):
+def get_dapis_for_a_ROI(roi_idx, img_dir, img_rounds, gray_scale=(0, 255), resize_to=(512, 512)):
     # print("ROI: %d" % roi_idx)
     r_s = "{:03d}".format(roi_idx)
     img_list = []
@@ -77,16 +90,24 @@ def get_dapis_for_a_ROI(roi_idx, img_dir, img_rounds, gray_scale=None, resize_to
         if gray_scale is not None:
             img_i = read_dapi(fn_i, scale_to=gray_scale).astype(np.uint8)
         else:
-            img_i = read_dapi(fn_i).astype(np.uint8)
-        img = Image.fromarray(img_i, mode="L")
+            img_i = read_dapi(fn_i)
         if resize_to is not None:
-            img = img.resize(resize_to)
-        img_list.append(np.array(img))
+            img_obj = Image.fromarray(img_i, mode="L")
+            img_obj.resize(resize_to)
+            img_i = np.array(img_obj).astype(np.uint8)
+            # img_obj.save("t1.jpg")
+            # plt.imshow(img_i)
+            # plt.savefig("t.jpg")
+            # n = 2
+            # b = img_i.shape[0] // n
+            # img_i = img_i.reshape(-1, n, b, n).sum((-1, -3)) / n
+            # img_i = np.resize(img_i, resize_to)
+        img_list.append(img_i)
     return np.array(img_list)
 
 
 def get_dapis_std(dapi_imgs, save_dir, ROI_id):
-    std_img = np.std(dapi_imgs, axis=0)
+
     save_to = os.path.join(save_dir, "dapi_std_img", str(ROI_id) + ".pickle")
     if not os.path.exists(os.path.join(save_dir, "dapi_std_img")):
         os.makedirs(os.path.join(save_dir, "dapi_std_img"))
@@ -94,21 +115,22 @@ def get_dapis_std(dapi_imgs, save_dir, ROI_id):
         f = open(save_to, 'rb')
         std_img = pickle.load(f)
     else:
+        std_img = np.std(dapi_imgs, axis=0)
         with open(save_to, "wb") as f:
             pickle.dump(std_img, f)
         f.close()
-        print("DAPI std saved to %s" % save_to)
+        print("\t\tDAPI std saved to %s" % save_to)
     return std_img
 
 
 def get_SSIM_array(roi_idx, aligned_img_dir, N_range, out_dir):
-    array_save_to = os.path.join(out_dir, "dapi_ssim", "ssim_array_region" + str(roi_idx) + ".pickle")
+    array_save_to = os.path.join(out_dir, "dapi_ssim_array", "ssim_array_region" + str(roi_idx) + ".pickle")
     if os.path.exists(array_save_to):
         f = open(array_save_to, 'rb')
         ssim_array = pickle.load(f)
     else:
-        if not os.path.exists(os.path.join(out_dir, "dapi_ssim")):
-            os.makedirs(os.path.join(out_dir, "dapi_ssim"))
+        if not os.path.exists(os.path.join(out_dir, "dapi_ssim_array")):
+            os.makedirs(os.path.join(out_dir, "dapi_ssim_array"))
         r_s = "{:03d}".format(roi_idx)
         # print("ROI: %d" % roi_idx)
         ssim_array = np.zeros([len(N_range), len(N_range)])
@@ -139,7 +161,40 @@ def get_SSIM_array(roi_idx, aligned_img_dir, N_range, out_dir):
                     ssim_array[idx_i, idx_j] = ssim_array[idx_j, idx_i]
         with open(array_save_to, "wb") as f:
             pickle.dump(ssim_array, f)
-        print("SSIM array saved to %s" % array_save_to)
+        print("\t\tSSIM array saved to %s" % array_save_to)
+    return ssim_array
+
+def get_SSIM_array_from_dapi(dapi_imgs, roi_idx, N_range, out_dir):
+    array_save_to = os.path.join(out_dir, "dapi_ssim_array", "ssim_array_region" + str(roi_idx) + ".pickle")
+    if os.path.exists(array_save_to):
+        f = open(array_save_to, 'rb')
+        ssim_array = pickle.load(f)
+    else:
+        if not os.path.exists(os.path.join(out_dir, "dapi_ssim_array")):
+            os.makedirs(os.path.join(out_dir, "dapi_ssim_array"))
+        r_s = "{:03d}".format(roi_idx)
+        # print("ROI: %d" % roi_idx)
+        ssim_array = np.zeros([len(N_range), len(N_range)])
+        for idx_i, r_n_i in enumerate(N_range):
+            for idx_j, r_n_j in enumerate(N_range):
+                if idx_j > idx_i:
+                    img_i = dapi_imgs[idx_i]
+                    img_j = dapi_imgs[idx_j]
+                    # print(fn_j)
+                    # print(fn_i)
+                    # print(img_i.shape)
+                    # print(img_j.shape)
+                    ssim_val = ssim(img_i, img_j, data_range=65535)
+                    ssim_array[idx_i, idx_j] = ssim_val
+                elif idx_j == idx_i:
+                    ssim_array[idx_i, idx_j] = 1
+        for idx_i, r_n_i in enumerate(N_range):
+            for idx_j, r_n_j in enumerate(N_range):
+                if idx_j < idx_i:
+                    ssim_array[idx_i, idx_j] = ssim_array[idx_j, idx_i]
+        with open(array_save_to, "wb") as f:
+            pickle.dump(ssim_array, f)
+        print("\t\tSSIM array saved to %s" % array_save_to)
     return ssim_array
 
 
@@ -154,6 +209,7 @@ def plot_SSIM_array(ssim_array, roi_idx, N_range, save_to_dir):
         plt.tight_layout()
         plt.savefig(save_to)
         plt.close()
+        print("\t\tDAPIs SSIM image save to %s" % save_to)
 
 
 def plot_dapi_thumbnails(dapi_imgs, roi_id, out_dir):
@@ -165,9 +221,9 @@ def plot_dapi_thumbnails(dapi_imgs, roi_id, out_dir):
         ele_img_sz = 200
         entire_img = np.zeros([img_w_h[0] * ele_img_sz, img_w_h[1] * ele_img_sz]).astype(np.uint8)
         for idx_i, dapi in enumerate(dapi_imgs):
-            c = (255 * (dapi - np.amin(dapi)) / np.ptp(dapi)).astype(int)
+            c = (255.0 * (dapi - np.amin(dapi)) / np.ptp(dapi)).astype(np.uint8)
             img = Image.fromarray(c, mode="L")
-            # img.save("t.jpg")
+            # img.save("t1.jpg")
             # plt.imshow(c)
             # plt.savefig("t.jpg")
             img = img.resize((ele_img_sz, ele_img_sz))
@@ -190,6 +246,7 @@ def plot_dapi_thumbnails(dapi_imgs, roi_id, out_dir):
         draw_loc = (entire_img.shape[1] - 50, entire_img.shape[1] - 50)
         draw.text(draw_loc, "ROI" + str(roi_id), fill=(255, 255, 255))
         img.save(save_to)
+        print("\t\tDAPIs thumbnail image save to %s" % save_to)
 
 
 def plot_dapi_std(dapi_std, roid_id, out_dir):
@@ -201,6 +258,7 @@ def plot_dapi_std(dapi_std, roid_id, out_dir):
         plt.axis('off')
         plt.savefig(save_to)
         plt.close()
+        print("\t\tDAPI STD image save to %s" % save_to)
 
 
 def get_overall_annotations(anno_df, panel_design, FOV, Round):
@@ -431,7 +489,7 @@ def plot_marker_quality_scatter(panel, FOV_range, anno_df, ssim_pick_dir, out_di
             ssim_std_list = []
             anno_score_list = []
             for r in FOV_range:
-                fn = os.path.join(ssim_pick_dir, "dapi_ssim", "ssim_array_region" + str(r) + ".pickle")
+                fn = os.path.join(ssim_pick_dir, "dapi_ssim_array", "ssim_array_region" + str(r) + ".pickle")
                 fp = open(fn, 'rb')
                 ssim_array = pickle.load(fp)
 
