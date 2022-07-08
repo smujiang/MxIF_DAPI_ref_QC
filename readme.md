@@ -25,13 +25,13 @@ Configure your Python enviroment:
 
 ### Compute metrics on images and create reports
 
-__Filename:__ `run_qc.py`
+__Filename:__ `run_dapi_ref_qc.py`
 
 __Purpose:__ This python script is intended to automatically evaluate MxIF image qualities using DAPI rounds as reference.
 1. QC reports will be created, including json and html versions.
 2. Intermedia evaluation metrics will be saved for advanced users.
 
-__CLI:__ `python run_qc.py -i <path to processor dir> -o <path to output dir> -c <case id to be evaluated>`
+__CLI:__ `python run_dapi_ref_qc.py -i <path to processor dir> -o <path to output dir> -c <case id to be evaluated>`
 
 
 
