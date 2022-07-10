@@ -8,7 +8,7 @@ The code contained within has been developed to generate metrics and report the 
 
 Clone this Repository:
 
-    git clone https://github.com/smujiang/MxIF_QC.git
+    git clone https://github.com/smujiang/MxIF_DAPI_ref_QC.git
 
 Configure your Python enviroment: 
    
