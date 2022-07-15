@@ -238,8 +238,6 @@ def plot_dapi_thumbnails(dapi_imgs, roi_id, out_dir):
         im = cm_hot(entire_img)
         entire_img = np.uint8(im * 255)
 
-        if not os.path.exists(os.path.join(out_dir, "DAPI_thumbnails")):
-            os.makedirs(os.path.join(out_dir, "DAPI_thumbnails"))
         img = Image.fromarray(entire_img)
         draw = ImageDraw.Draw(img)
         draw_loc = (entire_img.shape[1] - 50, entire_img.shape[1] - 50)
