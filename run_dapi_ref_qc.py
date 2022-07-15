@@ -151,22 +151,22 @@ if __name__ == '__main__':
     ########################################################
     print("Creating metrics and images")
     # Calculate QC metrics: SSIM and std (using multiprocessing)
-    a_pool = multiprocessing.Pool(32)
-    a_pool.map(pre_report, range_FOVs)
+    # a_pool = multiprocessing.Pool(32)
+    # a_pool.map(pre_report, range_FOVs)
 
     # Calculate QC metrics: SSIM and std (using single thread)
-    # for roi in range_FOVs:
-    #     print("\t processing ROI %d" % roi)
-    #
-    #     dapi_imgs = get_dapis_for_a_ROI(roi, Aligned_img_dir, range_iter)  # get all DAPI images
-    #     plot_dapi_thumbnails(dapi_imgs, roi, qc_out_dir)  # create DAPI thumbnails
-    #
-    #     ssim_array = get_SSIM_array(roi, Aligned_img_dir, range_iter, qc_out_dir)
-    #     # ssim_array = get_SSIM_array_from_dapi(dapi_imgs, roi, range_iter, qc_out_dir)  # save DAPI SSIM to pickle file
-    #     plot_SSIM_array(ssim_array, roi, range_iter, qc_out_dir)  # create SSIM array heatmaps
-    #
-    #     std_img = get_dapis_std(dapi_imgs, qc_out_dir, roi)  # save DAPI std to pickle file
-    #     plot_dapi_std(std_img, roi, qc_out_dir)
+    for roi in range_FOVs:
+        print("\t processing ROI %d" % roi)
+
+        dapi_imgs = get_dapis_for_a_ROI(roi, Aligned_img_dir, range_iter)  # get all DAPI images
+        plot_dapi_thumbnails(dapi_imgs, roi, qc_out_dir)  # create DAPI thumbnails
+
+        ssim_array = get_SSIM_array(roi, Aligned_img_dir, range_iter, qc_out_dir)
+        # ssim_array = get_SSIM_array_from_dapi(dapi_imgs, roi, range_iter, qc_out_dir)  # save DAPI SSIM to pickle file
+        plot_SSIM_array(ssim_array, roi, range_iter, qc_out_dir)  # create SSIM array heatmaps
+
+        std_img = get_dapis_std(dapi_imgs, qc_out_dir, roi)  # save DAPI std to pickle file
+        plot_dapi_std(std_img, roi, qc_out_dir)
 
     ########################################################
     # get detection results
