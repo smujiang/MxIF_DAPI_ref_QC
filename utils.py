@@ -16,7 +16,7 @@ def get_FOV_count(Aligned_img_case_dir):
     return len(glob(os.path.join(Aligned_img_case_dir, 'S002', "*mono_dapi_*.tif")))
 
 def get_iteration_count(Aligned_img_case_dir):
-    return len(glob(os.path.join(Aligned_img_case_dir))) - 1
+    return len(glob(os.path.join(Aligned_img_case_dir, "*"))) - 1
 
 def get_panel_design(Aligned_img_dir, panel_save_dir):
     save_to = os.path.join(panel_save_dir, "panel_design.pickle")

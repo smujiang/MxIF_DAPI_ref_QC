@@ -100,26 +100,31 @@ def create_json_obj(tissue_off_results, vec_DAPI_SSIM_avg_list, FOV_artifacts_re
     return json_object
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-i", "--aligned_img_dir",
-                        required=True,
-                        dest='Aligned_img_dir',
-                        help="Aligned image directory")
+    # parser = argparse.ArgumentParser()
+    # parser.add_argument("-i", "--aligned_img_dir",
+    #                     required=True,
+    #                     dest='Aligned_img_dir',
+    #                     help="Aligned image directory")
+    #
+    # parser.add_argument("-c", "--case_id",
+    #                     required=True,
+    #                     dest="case_id",
+    #                     help="Case ID, Type: string")
+    #
+    # parser.add_argument("-o", "--output_dir",
+    #                     default=os.getcwd(),
+    #                     dest='output_dir',
+    #                     help="Metrics output directory")
+    #
+    # args = parser.parse_args()
+    # img_base_dir = args.Aligned_img_dir
+    # case_ID = args.case_id
+    # out_base_Dir = args.output_dir
+    #
 
-    parser.add_argument("-c", "--case_id",
-                        required=True,
-                        dest="case_id",
-                        help="Case ID, Type: string")
-
-    parser.add_argument("-o", "--output_dir",
-                        default=os.getcwd(),
-                        dest='output_dir',
-                        help="Metrics output directory")
-
-    args = parser.parse_args()
-    img_base_dir = args.Aligned_img_dir
-    case_ID = args.case_id
-    out_base_Dir = args.output_dir
+    img_base_dir = "/research/bsi/archive/PI/Markovic_Svetomir_snm02/tertiary/s210155.CellSegmentation/integrated/SLN_Maus_June2019"
+    case_ID = "SLN1"
+    out_base_Dir = "/research/bsi/projects/staff_analysis/m192500/MxIF_CellSeg/OME_TIFF/QC_out"
 
     Aligned_img_dir = os.path.join(img_base_dir, case_ID, "RegisteredImages")
     qc_out_dir = os.path.join(out_base_Dir, case_ID, "DAPI_QC")
@@ -128,11 +133,13 @@ if __name__ == '__main__':
 
     # N_FOVs = 348  # TODO: uncomment to debug
     # N_iter = 30  # TODO: uncomment to debug
-    N_FOVs = get_FOV_count(Aligned_img_dir) # TODO: uncomment to release
+    N_FOVs = get_FOV_count(Aligned_img_dir)  # TODO: uncomment to release
     N_iter = get_iteration_count(Aligned_img_dir)  # TODO: uncomment to release
 
     range_FOVs = range(1, N_FOVs)
     range_iter = range(2, N_iter)
+    print("Number of FOVs:%d" % N_FOVs)
+    print("Number of imaging iterations:%d" % N_iter)
 
     def pre_report(roi):
         print("\t processing ROI %d" % roi)
