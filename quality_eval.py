@@ -138,12 +138,12 @@ def det_tissue_damage(best_threshold, FOVs, qc_out_dir, Aligned_img_dir, N_itera
             results.append(True)
     return results, vec_DAPI_SSIM_avg_list
 
-def get_low_quality_rounds(fov_id, dapi_ssim_result, vec_DAPI_SSIM_avg_list, dapi_std_result, threshold=0.7):
+def get_low_quality_rounds(fov_id, dapi_ssim_result, vec_DAPI_SSIM_avg_list, dapi_std_result, threshold=0.5):
     # print(dapi_ssim_result)
     # print(dapi_std_result)
     # print(fov_id)
     if dapi_ssim_result[fov_id-1] or dapi_std_result[fov_id-1]:
-        rr = np.where(vec_DAPI_SSIM_avg_list[fov_id-1] > threshold)[0]
+        rr = np.where(vec_DAPI_SSIM_avg_list[fov_id-1] < threshold)[0]
         ssim_score = np.array(vec_DAPI_SSIM_avg_list[fov_id-1])[rr]
         return rr, ssim_score
     else:
@@ -244,6 +244,7 @@ def det_halo_artifacts(best_threshold_dapi_std, FOVs, QC_out_dir, Aligned_img_di
 
         # Round_results.append(std_img > best_threshold_dapi_std)
         std_img_avg = np.average(std_img)
+        Round_results.append(std_img_avg)
         if std_img_avg < best_threshold_dapi_std:  # if there is no artifact
             FOV_results.append(False)
         else:
