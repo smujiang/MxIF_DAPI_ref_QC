@@ -38,7 +38,8 @@ __CLI:__ `python run_dapi_ref_qc.py -i <path to processor dir> -o <path to outpu
 
 ### Cell distribution differences
 We also compared the cell distribution differences between high-quality group (HQ, FOVs passed our QC) and low-quality group (LQ, FOVs failed our QC).
-![img_1.png](img_1.png)
+![stroma cell distribution](./imgs/cell_dis.png)
+
 We found that in stroma cell, 
 1) LQ group presented higher density in some region (elevated more than 20%).   
 2) HQ and LQ group share similar cell distribution, that's because
