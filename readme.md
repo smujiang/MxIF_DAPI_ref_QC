@@ -33,6 +33,20 @@ __Purpose:__ This python script is intended to automatically evaluate MxIF image
 
 __CLI:__ `python run_dapi_ref_qc.py -i <path to processor dir> -o <path to output dir> -c <case id to be evaluated>`
 
+### Example report
+![example report](./imgs/qc_report.png)
+
+### Cell distribution differences
+We also compared the cell distribution differences between high-quality group (HQ, FOVs passed our QC) and low-quality group (LQ, FOVs failed our QC).
+![img_1.png](img_1.png)
+We found that in stroma cell, 
+1) LQ group presented higher density in some region (elevated more than 20%).   
+2) HQ and LQ group share similar cell distribution, that's because
+    a) there are “high quality” sub-regions within LQ FOVs
+    b) there are undetected LQ FOVs within HQ group
+
+
+
 
 
 
