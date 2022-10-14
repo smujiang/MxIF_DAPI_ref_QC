@@ -56,12 +56,12 @@ def generateHTMLTable(tissue_off_results, vec_DAPI_SSIM_avg_list, FOV_artifacts_
             recom_txt += "<p> Suspect tissue damage.</p>"
         else:
             tissue_damage_indicator = "undetected"
-        if FOV_results[idx]:
+        if FOV_artifacts_results[idx]:
             artifacts_indicator = "<p style='color:red'>Detected</p>"
             recom_txt += "<p> Suspect artifact.</p>"
         else:
             artifacts_indicator = "undetected"
-        if r or FOV_results[idx]:
+        if r or FOV_artifacts_results[idx]:
             marker_txt = get_marker_txt_name_by_round(panel_des, low_q_round)
             recom_txt += "<p> Low quality markers: " + pretty_marker_name_list(marker_txt) + "</p>"
 
@@ -73,18 +73,18 @@ def generateHTMLTable(tissue_off_results, vec_DAPI_SSIM_avg_list, FOV_artifacts_
 
 def create_json_obj(tissue_off_results, vec_DAPI_SSIM_avg_list, FOV_artifacts_results, panel_des):
     result_dic = []
-    for idx, r in enumerate(tissue_results):
+    for idx, r in enumerate(tissue_off_results):
         low_q_round, scores = get_low_quality_rounds(idx + 1, tissue_off_results, vec_DAPI_SSIM_avg_list,
                                                      FOV_artifacts_results)
         if r:
             tissue_damage_indicator = "True"
         else:
             tissue_damage_indicator = "False"
-        if FOV_results[idx]:
+        if FOV_artifacts_results[idx]:
             artifacts_indicator = "True"
         else:
             artifacts_indicator = "False"
-        if r or FOV_results[idx]:
+        if r or FOV_artifacts_results[idx]:
             marker_txt = get_marker_txt_name_by_round(panel_des, low_q_round)
         else:
             marker_txt = ""
@@ -100,26 +100,38 @@ def create_json_obj(tissue_off_results, vec_DAPI_SSIM_avg_list, FOV_artifacts_re
     return json_object
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-i", "--aligned_img_dir",
-                        required=True,
-                        dest='Aligned_img_dir',
-                        help="Aligned image directory")
+    # parser = argparse.ArgumentParser()
+    # parser.add_argument("-i", "--aligned_img_dir",
+    #                     required=True,
+    #                     dest='Aligned_img_dir',
+    #                     help="Aligned image directory")
+    #
+    # parser.add_argument("-c", "--case_id",
+    #                     required=True,
+    #                     dest="case_id",
+    #                     help="Case ID, Type: string")
+    #
+    # parser.add_argument("-o", "--output_dir",
+    #                     default=os.getcwd(),
+    #                     dest='output_dir',
+    #                     help="Metrics output directory")
+    #
+    # args = parser.parse_args()
+    # img_base_dir = args.Aligned_img_dir
+    # case_ID = args.case_id
+    # out_base_Dir = args.output_dir
+    #
 
-    parser.add_argument("-c", "--case_id",
-                        required=True,
-                        dest="case_id",
-                        help="Case ID, Type: string")
+    # img_base_dir = "/research/bsi/archive/PI/Goode_Ellen_m004290/tertiary/s302493.MxIF_Ovarian_Cancer/integrated/OVCA_TMA22_Pilot"
+    # case_ID = "OVCA_TMA22"
+    # img_base_dir = "/research/bsi/archive/PI/Markovic_Svetomir_snm02/tertiary/s210155.CellSegmentation/integrated/SLN_Maus_June2019"
+    # case_ID = "SLN3"
 
-    parser.add_argument("-o", "--output_dir",
-                        default=os.getcwd(),
-                        dest='output_dir',
-                        help="Metrics output directory")
+    img_base_dir = "/research/bsi/archive/PI/Markovic_Svetomir_snm02/tertiary/s210155.CellSegmentation/integrated/MelanomaLN_BMSAim1_Batch1"
+    case_ID = "Mel30_BMS"
 
-    args = parser.parse_args()
-    img_base_dir = args.Aligned_img_dir
-    case_ID = args.case_id
-    out_base_Dir = args.output_dir
+
+    out_base_Dir = "/research/bsi/projects/staff_analysis/m192500/MxIF_CellSeg/OME_TIFF/QC_out"
 
     Aligned_img_dir = os.path.join(img_base_dir, case_ID, "RegisteredImages")
     qc_out_dir = os.path.join(out_base_Dir, case_ID, "DAPI_QC")
@@ -128,11 +140,14 @@ if __name__ == '__main__':
 
     # N_FOVs = 348  # TODO: uncomment to debug
     # N_iter = 30  # TODO: uncomment to debug
-    N_FOVs = get_FOV_count(Aligned_img_dir) # TODO: uncomment to release
+    N_FOVs = get_FOV_count(Aligned_img_dir)  # TODO: uncomment to release
     N_iter = get_iteration_count(Aligned_img_dir)  # TODO: uncomment to release
 
     range_FOVs = range(1, N_FOVs)
-    range_iter = range(2, N_iter)
+    range_iter = range(2, N_iter+2)
+    print(list(range_iter))
+    print("Number of FOVs:%d" % N_FOVs)
+    print("Number of imaging iterations:%d" % (N_iter+2))
 
     def pre_report(roi):
         print("\t processing ROI %d" % roi)
@@ -175,6 +190,25 @@ if __name__ == '__main__':
     artifacts_threshold = 7.77  # default values
     tissue_results, vec_DAPI_SSIM_avg_list = det_tissue_damage(tissue_dam_threshold, range_FOVs, qc_out_dir, Aligned_img_dir, range_iter)
     FOV_results, _ = det_halo_artifacts(artifacts_threshold, range_FOVs, qc_out_dir, Aligned_img_dir, range_iter)
+
+    import matplotlib.pyplot as plt
+    arr_DAPI_SSIM = np.array(vec_DAPI_SSIM_avg_list)
+    all_ssim_avg = []
+    for r in range(28):
+        round_ssim = arr_DAPI_SSIM[:, r]
+        # hist_round_ssim = np.histogram(round_ssim)
+        all_ssim_avg.append(round_ssim)
+    plt.hist(np.array(all_ssim_avg).flatten())
+    plt.xlim(-0.2, 1.2)
+    print(np.std(np.array(all_ssim_avg).flatten()))
+    print(np.mean(np.array(all_ssim_avg).flatten()))
+    print(np.median(np.array(all_ssim_avg).flatten()))
+    print(np.min(np.array(all_ssim_avg).flatten()))
+    print(np.max(np.array(all_ssim_avg).flatten()))
+    plt.ylim(0, 3000)
+    plt.savefig("all_ssim.png")
+    plt.close()
+
 
     ########################################################
     # create html reports

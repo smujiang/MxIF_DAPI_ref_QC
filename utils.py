@@ -1,5 +1,5 @@
 import os, sys, io
-import numpy
+import math
 import numpy as np
 from glob import glob
 import pickle
@@ -16,7 +16,7 @@ def get_FOV_count(Aligned_img_case_dir):
     return len(glob(os.path.join(Aligned_img_case_dir, 'S002', "*mono_dapi_*.tif")))
 
 def get_iteration_count(Aligned_img_case_dir):
-    return len(glob(os.path.join(Aligned_img_case_dir))) - 1
+    return len(glob(os.path.join(Aligned_img_case_dir, "*"))) - 1
 
 def get_panel_design(Aligned_img_dir, panel_save_dir):
     save_to = os.path.join(panel_save_dir, "panel_design.pickle")
@@ -106,7 +106,6 @@ def get_dapis_for_a_ROI(roi_idx, img_dir, img_rounds, gray_scale=(0, 255), resiz
 
 
 def get_dapis_std(dapi_imgs, save_dir, ROI_id):
-
     save_to = os.path.join(save_dir, "dapi_std_img", str(ROI_id) + ".pickle")
     if not os.path.exists(os.path.join(save_dir, "dapi_std_img")):
         os.makedirs(os.path.join(save_dir, "dapi_std_img"))
@@ -210,13 +209,16 @@ def plot_SSIM_array(ssim_array, roi_idx, N_range, save_to_dir):
         plt.close()
         print("\t\tDAPIs SSIM image save to %s" % save_to)
 
+def get_disp_dim(img_cnt):
+    h = math.ceil(img_cnt / 6)
+    return (h, 6)
 
 def plot_dapi_thumbnails(dapi_imgs, roi_id, out_dir):
     save_to = os.path.join(out_dir, "DAPI_thumbnails", "ROI_%d_all_dapi.png" % roi_id)
     if not os.path.exists(os.path.join(out_dir, "DAPI_thumbnails")):
         os.makedirs(os.path.join(out_dir, "DAPI_thumbnails"))
     if not os.path.exists(save_to):
-        img_w_h = (4, 8)
+        img_w_h = get_disp_dim(dapi_imgs.shape[0])
         ele_img_sz = 200
         entire_img = np.zeros([img_w_h[0] * ele_img_sz, img_w_h[1] * ele_img_sz]).astype(np.uint8)
         for idx_i, dapi in enumerate(dapi_imgs):
