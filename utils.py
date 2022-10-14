@@ -251,9 +251,14 @@ def plot_dapi_std(dapi_std, roid_id, out_dir):
     if not os.path.exists(os.path.join(out_dir, "dapi_std_img")):
         os.makedirs(os.path.join(out_dir, "dapi_std_img"))
     if not os.path.exists(save_to):
-        plt.imshow(dapi_std)
-        plt.axis('off')
-        plt.savefig(save_to)
+        fig = plt.figure(frameon=False)
+        fig.set_size_inches(4, 4)
+        ax = plt.Axes(fig, [0., 0., 1., 1.])
+        ax.set_axis_off()
+        fig.add_axes(ax)
+        ax.imshow(dapi_std, vmin=0, vmax=129.5, cmap='jet', aspect='auto') # plot at the same scale bar
+        # vmax=129.5 was the maximum value within all DAPI std images in ovarian TMA dataset. Could use other values when necessary
+        fig.savefig(save_to)
         plt.close()
         print("\t\tDAPI STD image save to %s" % save_to)
 
