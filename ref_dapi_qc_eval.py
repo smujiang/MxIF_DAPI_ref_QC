@@ -65,7 +65,7 @@ from quality_eval import load_annotation, eval_tissue_damage, det_tissue_damage,
 # example:
 Aligned_img_dir = "/research/bsi/archive/PI/Goode_Ellen_m004290/tertiary/s302493.MxIF_Ovarian_Cancer/integrated/OVCA_TMA22_Pilot/OVCA_TMA22/RegisteredImages"  # aligned image directory
 case_id = "OVCA_TMA22"  # case ID
-ROIs = range(1, 348)  # range/list of ROIs
+ROIs = range(1, 349)  # range/list of ROIs
 # ROIs = range(1, 3)  # range/list of ROIs
 N_range = range(2, 32)  # range of imaging iterations (skip the first round, as it's an overview of slide)
 OME_TIFF_dir = "/research/bsi/projects/staff_analysis/m192500/MxIF_CellSeg/OVCA_TMA22/OME_TIFF_Images"  # directory to save OME.TIFF files

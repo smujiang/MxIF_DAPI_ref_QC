@@ -19,7 +19,7 @@ output_dir = "/infodev1/non-phi-data/junjiang/MxIF/OVCA_TMA22/umap_cluster_cell_
 img_output_dir = "/infodev1/non-phi-data/junjiang/MxIF/OVCA_TMA22/cell_loc_imgs"
 eval_img_output_dir = "/infodev1/non-phi-data/junjiang/MxIF/OVCA_TMA22/cell_distributions"
 
-roi_id_range = range(1, 348)
+roi_id_range = range(1, 349)
 
 point_size = 5  # size of labels that show the locations of cells on DAPI
 show_dapi_in = "gray"  # or "red"
