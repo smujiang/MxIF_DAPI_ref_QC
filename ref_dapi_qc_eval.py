@@ -68,10 +68,10 @@ case_id = "OVCA_TMA22"  # case ID
 ROIs = range(1, 349)  # range/list of ROIs
 # ROIs = range(1, 3)  # range/list of ROIs
 N_range = range(2, 32)  # range of imaging iterations (skip the first round, as it's an overview of slide)
-OME_TIFF_dir = "/research/bsi/projects/staff_analysis/m192500/MxIF_CellSeg/OVCA_TMA22/OME_TIFF_Images"  # directory to save OME.TIFF files
+OME_TIFF_dir = "/MyLANID/MxIF_CellSeg/OVCA_TMA22/OME_TIFF_Images"  # directory to save OME.TIFF files
 annotation_fn = "./OVTMA_MarkerQCAnnotations_FromJun_upgraded_04_08_2022.txt"  # annotation csv file name
-output = "/research/bsi/projects/staff_analysis/m192500/MxIF_CellSeg/OME_TIFF/QC_out"
-vis = "/research/bsi/projects/staff_analysis/m192500/MxIF_CellSeg/OME_TIFF/QC_vis"
+output = "/MyLANID/MxIF_CellSeg/OME_TIFF/QC_out"
+vis = "/MyLANID/MxIF_CellSeg/OME_TIFF/QC_vis"
 QC_out_dir = os.path.join(output, case_id)  # output directory: save pickle files for arrays, variables.
 vis_dir = os.path.join(vis, case_id)  # output directory: save pictures/plots
 

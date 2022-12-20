@@ -127,11 +127,11 @@ if __name__ == '__main__':
     # img_base_dir = "/research/bsi/archive/PI/Markovic_Svetomir_snm02/tertiary/s210155.CellSegmentation/integrated/SLN_Maus_June2019"
     # case_ID = "SLN3"
 
-    img_base_dir = "/research/bsi/archive/PI/Markovic_Svetomir_snm02/tertiary/s210155.CellSegmentation/integrated/MelanomaLN_BMSAim1_Batch1"
+    img_base_dir = "/tertiary/s210155.CellSegmentation/integrated/MelanomaLN_BMSAim1_Batch1"
     case_ID = "Mel30_BMS"
 
 
-    out_base_Dir = "/research/bsi/projects/staff_analysis/m192500/MxIF_CellSeg/OME_TIFF/QC_out"
+    out_base_Dir = "/MyLANID/MxIF_CellSeg/OME_TIFF/QC_out"
 
     Aligned_img_dir = os.path.join(img_base_dir, case_ID, "RegisteredImages")
     qc_out_dir = os.path.join(out_base_Dir, case_ID, "DAPI_QC")
