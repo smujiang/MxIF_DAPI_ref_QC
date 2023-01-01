@@ -5,6 +5,7 @@ from glob import glob
 import pickle
 import matplotlib.pyplot as plt
 import seaborn as sns
+from PIL.ImageFont import ImageFont
 from skimage.metrics import structural_similarity as ssim
 import matplotlib as mpl
 import tifffile as tf
@@ -378,11 +379,12 @@ def get_images_vis(case_id, fov, Round, panel, anno_df, img_dir, img_sz=512):
 
         draw = ImageDraw.Draw(img)
         draw_loc = (5, 5)
-        draw.text(draw_loc, channel_names[i], fill=255)
+        font = ImageFont.truetype("sans-serif.ttf", size=16)
+        draw.text(draw_loc, channel_names[i], font=font, fill=255)
 
         draw_loc = (img_sz - 35, 5)
         if anno_df is not None:
-            draw.text(draw_loc, annotations[i_idx], fill=255)
+            draw.text(draw_loc, annotations[i_idx], font=font, fill=255)
 
         cm_hot = mpl.cm.get_cmap(c_maps[i_idx])
         im = cm_hot(np.array(img))

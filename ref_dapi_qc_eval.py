@@ -82,8 +82,8 @@ def calculate_all(roi):
 
     dapi_imgs = get_dapis_for_a_ROI(roi, Aligned_img_dir, N_range, gray_scale=(0, 255))
     std_img = get_dapis_std(dapi_imgs, QC_out_dir, roi)  # save dapi std
-    plot_dapi_thumbnails(dapi_imgs, roi, vis_dir)  # TODO: have issue, don't show?
-    plot_dapi_std(std_img, roi, vis_dir)  # TODO: double check
+    plot_dapi_thumbnails(dapi_imgs, roi, vis_dir)  #
+    plot_dapi_std(std_img, roi, vis_dir)  #
 
 
 if not os.path.exists(OME_TIFF_dir):
