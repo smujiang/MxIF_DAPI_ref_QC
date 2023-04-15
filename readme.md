@@ -42,8 +42,8 @@ We also compared the cell distribution differences between high-quality group (H
 
 We found that in stroma cell, 
 1) LQ group presented higher density in some region (elevated more than 20%).   
-2) HQ and LQ group share similar cell distribution, that's because
-    a) there are “high quality” sub-regions within LQ FOVs
+2) HQ and LQ group share similar cell distribution, that's because:   
+    a) there are “high quality” sub-regions within LQ FOVs;   
     b) there are undetected LQ FOVs within HQ group
 
 
